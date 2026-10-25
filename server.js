@@ -9,18 +9,13 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 
-// Função que a Vercel usa para renovar o token
+// Função que renova o token do Google
 function renovarToken() {
     return new Promise((resolve, reject) => {
         const postData = `client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&refresh_token=${REFRESH_TOKEN}&grant_type=refresh_token`;
         const options = {
-            hostname: 'oauth2.googleapis.com',
-            path: '/token',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData)
-            }
+            hostname: 'oauth2.googleapis.com', path: '/token', method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(postData) }
         };
         const req = https.request(options, (res) => {
             let body = '';
@@ -37,17 +32,12 @@ function renovarToken() {
     });
 }
 
-// ==========================================
-// ROTA QUE SALVA NO GOOGLE DRIVE
-// ==========================================
+// Rota que salva no Google Drive
 app.post('/api/salvar-no-drive', async (req, res) => {
     try {
         const { nomeArquivo, conteudoBase64 } = req.body;
-
-        // 1. Pega o token novo
         const accessToken = await renovarToken();
 
-        // 2. Prepara o arquivo pro Google
         const boundary = '-------314159265358979323846';
         const delimiter = "\r\n--" + boundary + "\r\n";
         const close_delim = "\r\n--" + boundary + "--";
@@ -58,9 +48,7 @@ app.post('/api/salvar-no-drive', async (req, res) => {
             delimiter + 'Content-Type: text/plain\r\n' + 'Content-Transfer-Encoding: base64\r\n\r\n' + conteudoBase64 + close_delim;
 
         const options = {
-            hostname: 'www.googleapis.com',
-            path: '/upload/drive/v3/files?uploadType=multipart',
-            method: 'POST',
+            hostname: 'www.googleapis.com', path: '/upload/drive/v3/files?uploadType=multipart', method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + accessToken,
                 'Content-Type': 'multipart/related; boundary="' + boundary + '"',
@@ -68,98 +56,120 @@ app.post('/api/salvar-no-drive', async (req, res) => {
             }
         };
 
-        // 3. Manda pro Google
         const googleReq = https.request(options, (googleRes) => {
             let googleBody = '';
             googleRes.on('data', (chunk) => googleBody += chunk);
             googleRes.on('end', () => {
-                if (googleRes.statusCode === 200) {
-                    res.json({ status: "sucesso", mensagem: "Arquivo no Drive!" });
-                } else {
-                    res.status(500).json({ erro: googleBody });
-                }
+                if (googleRes.statusCode === 200) res.json({ status: "sucesso" });
+                else res.status(500).json({ erro: googleBody });
             });
         });
-
         googleReq.write(multipartRequestBody);
         googleReq.end();
-
     } catch (erro) {
         res.status(500).json({ erro: "Falha no Token ou na conexão" });
     }
 });
 
-// ==========================================
-// A INTERFACE DO WINDOWS (O site da TV)
-// ==========================================
+// A INTERFACE (Windows 11 Retrô com Tabelas)
 app.get('/', (req, res) => {
     res.send(`
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Windows Web</title>
+        <meta charset="UTF-8">
+        <title>Windows 11 Web</title>
         <style>
-            body { background-color: #008080; margin: 0; font-family: Arial; overflow: hidden; height: 100vh; }
-            #desktop { height: 90vh; padding: 20px; position: relative; }
-            .icone { width: 80px; text-align: center; color: white; cursor: pointer; display: inline-block; }
-            .icone span { display: block; font-size: 14px; text-shadow: 1px 1px 1px #000; }
-            #barra-tarefas { position: absolute; bottom: 0; width: 100%; height: 10vh; background-color: #c0c0c0; border-top: 2px solid #fff; display: flex; align-items: center; padding: 0 10px; box-sizing: border-box;}
-            #botao-iniciar { padding: 5px 15px; background-color: #c0c0c0; border: 2px solid; border-color: #fff #000 #000 #fff; font-weight: bold; cursor: pointer;}
+            /* Cores do Win11, mas sem CSS moderno */
+            body { background-color: #0067c0; margin: 0; font-family: Arial, sans-serif; overflow: hidden; height: 100vh; }
+            #desktop { height: 90vh; padding: 20px; }
             
-            #janela { display: none; position: absolute; top: 50px; left: 100px; width: 500px; height: 400px; background-color: #c0c0c0; border: 2px solid; border-color: #fff #000 #000 #fff; z-index: 10; flex-direction: column; }
-            #barra-titulo { background-color: #000080; color: white; padding: 5px; font-weight: bold; display: flex; justify-content: space-between; }
-            #fechar { cursor: pointer; padding: 0 5px; background-color: #c0c0c0; color: black; border: 1px solid; border-color: #fff #000 #000 #fff; }
-            #textarea { flex: 1; margin: 5px; resize: none; outline: none; font-family: monospace; padding: 5px; }
-            #status { position: absolute; bottom: 0; right: 10px; color: white; font-size: 12px; padding: 2px; }
+            /* Ícone da Área de Trabalho */
+            .icone { width: 80px; text-align: center; color: #fff; cursor: pointer; display: inline-block; text-shadow: 1px 1px 2px #000; }
+            .icone div { font-size: 40px; }
+            .icone span { font-size: 13px; }
+
+            /* Barra de Tarefas */
+            #barra-tarefas { 
+                position: absolute; bottom: 0; width: 100%; height: 10vh; 
+                background-color: #f3f3f3; border-top: 1px solid #ccc; text-align: center;
+            }
+            #barra-tarefas table { width: 100%; height: 100%; }
+            .icone-barra { font-size: 24px; color: #0067c0; cursor: pointer; padding: 0 15px; }
+            #status { position: absolute; right: 20px; top: 30%; color: #333; font-size: 12px; font-weight: bold; }
+
+            /* Janela */
+            #janela { display: none; position: absolute; top: 20%; left: 25%; width: 50%; height: 50%; background-color: #fff; border: 2px solid #0067c0; z-index: 10; }
+            #barra-titulo { background-color: #0067c0; color: #fff; padding: 10px; font-weight: bold; }
+            #fechar { float: right; cursor: pointer; color: #fff; }
+            #textarea { width: 95%; height: 60%; margin: 10px; outline: none; border: 1px solid #ccc; padding: 5px; }
+            .btn-salvar { background-color: #0067c0; color: #fff; border: none; padding: 10px 20px; margin-left: 10px; cursor: pointer; font-weight: bold; }
         </style>
     </head>
     <body>
         <div id="desktop">
+            <!-- Ícone -->
             <div class="icone" onclick="abrirBloco()">
-                <div style="font-size: 48px;">📄</div>
+                <div>📄</div>
                 <span>MeuHD.txt</span>
             </div>
+            
+            <!-- Janela -->
             <div id="janela">
                 <div id="barra-titulo">
-                    <span>MeuHD.txt - Bloco de Notas</span>
                     <span id="fechar" onclick="fecharBloco()">X</span>
+                    📄 Bloco de Notas
                 </div>
-                <textarea id="textarea" placeholder="Digite aqui. Vai direto pro Google Drive!"></textarea>
-                <div style="padding: 5px; text-align: right;">
-                    <button onclick="salvarNoDrive()" style="padding: 5px 20px;">Salvar</button>
-                </div>
+                <textarea id="textarea" placeholder="Digite aqui. Salva direto no Google Drive..."></textarea>
+                <button class="btn-salvar" onclick="salvarNoDrive()">Salvar na Nuvem</button>
             </div>
         </div>
+
+        <!-- Barra de tarefas -->
         <div id="barra-tarefas">
-            <div id="botao-iniciar">⊞ Iniciar</div>
-            <div id="status">Conectado à Nuvem</div>
+            <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td align="center">
+                        <span class="icone-barra">⊞</span>
+                        <span class="icone-barra">🔍</span>
+                        <span class="icone-barra">📁</span>
+                    </td>
+                </tr>
+            </table>
+            <div id="status">Conectado ao Drive</div>
         </div>
+
         <script>
-            function abrirBloco() { document.getElementById('janela').style.display = 'flex'; }
+            // Código ES5 (À prova de TVs)
+            function abrirBloco() { document.getElementById('janela').style.display = 'block'; }
             function fecharBloco() { document.getElementById('janela').style.display = 'none'; }
+            
             function salvarNoDrive() {
                 var texto = document.getElementById('textarea').value;
-                if(texto === "") return alert("Digite algo!");
+                if(texto === "") { alert("Digite algo primeiro!"); return; }
                 
-                document.getElementById('status').innerText = "Enviando pro Google Drive...";
+                document.getElementById('status').innerText = "Enviando...";
                 
-                fetch('/api/salvar-no-drive', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nomeArquivo: "arquivo_salvo.txt",
-                        conteudoBase64: btoa(texto) // Converte pra Base64
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.status === 'sucesso') {
-                        document.getElementById('status').innerText = "Salvo no Drive!";
-                        alert("Arquivo salvo no seu Google Drive!");
-                    } else {
-                        document.getElementById('status').innerText = "Erro ao salvar";
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/api/salvar-no-drive", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4) {
+                        if(xhr.status == 200) {
+                            document.getElementById('status').innerText = "Salvo no Drive!";
+                            alert("Arquivo enviado pro Google Drive!");
+                        } else {
+                            document.getElementById('status').innerText = "Erro ao salvar";
+                            alert("Erro. Verifique o token no Google.");
+                        }
                     }
-                });
+                };
+                
+                xhr.send(JSON.stringify({ 
+                    nomeArquivo: "arquivo_salvo.txt", 
+                    conteudoBase64: btoa(texto) 
+                }));
             }
         </script>
     </body>
@@ -167,4 +177,4 @@ app.get('/', (req, res) => {
     `);
 });
 
-app.listen(3000, () => console.log("PC na Nuvem rodando!"));
+app.listen(3000, () => console.log("PC na Nuvem ligado!"));
