@@ -4,14 +4,15 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 
-// CHECAGEM DE SEGURANÇA: Vai aparecer no Log da Vercel se as chaves estão lá
-console.log("Client ID:", CLIENT_ID ? "OK" : "FALTANDO");
-console.log("Client Secret:", CLIENT_SECRET ? "OK" : "FALTANDO");
-console.log("Refresh Token:", REFRESH_TOKEN ? "OK" : "FALTANDO");
-
+// 1. PRIMEIRO: Declara as variáveis puxando da Vercel
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+
+// 2. DEPOIS: Mostra no log se elas chegaram
+console.log("Client ID:", CLIENT_ID ? "OK" : "FALTANDO");
+console.log("Client Secret:", CLIENT_SECRET ? "OK" : "FALTANDO");
+console.log("Refresh Token:", REFRESH_TOKEN ? "OK" : "FALTANDO");
 
 // Função que renova o token do Google
 function renovarToken() {
@@ -65,115 +66,136 @@ app.post('/api/salvar-no-drive', async (req, res) => {
             googleRes.on('data', (chunk) => googleBody += chunk);
             googleRes.on('end', () => {
                 if (googleRes.statusCode === 200) res.json({ status: "sucesso" });
-                else res.status(500).json({ erro: googleBody });
+                else res.status(500).json({ erro: "Erro no Upload: " + googleBody });
             });
         });
         googleReq.write(multipartRequestBody);
         googleReq.end();
     } catch (erro) {
-        res.status(500).json({ erro: "Falha no Token ou na conexão" });
+        res.status(500).json({ erro: "Erro no Token: " + JSON.stringify(erro) });
     }
 });
 
-// A INTERFACE (Windows 11 Retrô com Tabelas)
 app.get('/', (req, res) => {
     res.send(`
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Windows 11 Web</title>
         <style>
-            /* Cores do Win11, mas sem CSS moderno */
-            body { background-color: #0067c0; margin: 0; font-family: Arial, sans-serif; overflow: hidden; height: 100vh; }
-            #desktop { height: 90vh; padding: 20px; }
-            
-            /* Ícone da Área de Trabalho */
-            .icone { width: 80px; text-align: center; color: #fff; cursor: pointer; display: inline-block; text-shadow: 1px 1px 2px #000; }
-            .icone div { font-size: 40px; }
-            .icone span { font-size: 13px; }
-
-            /* Barra de Tarefas */
-            #barra-tarefas { 
-                position: absolute; bottom: 0; width: 100%; height: 10vh; 
-                background-color: #f3f3f3; border-top: 1px solid #ccc; text-align: center;
+            body { 
+                background: linear-gradient(135deg, #004e92, #000428); 
+                margin: 0; font-family: 'Segoe UI', Arial, sans-serif; 
+                overflow: hidden; height: 100vh; color: #fff;
             }
-            #barra-tarefas table { width: 100%; height: 100%; }
-            .icone-barra { font-size: 24px; color: #0067c0; cursor: pointer; padding: 0 15px; }
-            #status { position: absolute; right: 20px; top: 30%; color: #333; font-size: 12px; font-weight: bold; }
+            
+            #desktop { height: calc(100vh - 50px); padding: 20px; position: relative; }
+            
+            .icone { width: 90px; text-align: center; cursor: pointer; display: inline-block; padding: 10px; border-radius: 8px; transition: 0.2s; }
+            .icone:hover { background-color: rgba(255,255,255,0.1); }
+            .icone div { font-size: 45px; line-height: 1; margin-bottom: 5px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+            .icone span { font-size: 14px; text-shadow: 1px 1px 3px black; }
 
-            /* Janela */
-            #janela { display: none; position: absolute; top: 20%; left: 25%; width: 50%; height: 50%; background-color: #fff; border: 2px solid #0067c0; z-index: 10; }
-            #barra-titulo { background-color: #0067c0; color: #fff; padding: 10px; font-weight: bold; }
-            #fechar { float: right; cursor: pointer; color: #fff; }
-            #textarea { width: 95%; height: 60%; margin: 10px; outline: none; border: 1px solid #ccc; padding: 5px; }
-            .btn-salvar { background-color: #0067c0; color: #fff; border: none; padding: 10px 20px; margin-left: 10px; cursor: pointer; font-weight: bold; }
+            #barra-tarefas { 
+                position: absolute; bottom: 0; width: 100%; height: 50px; 
+                background: rgba(32, 32, 32, 0.7); 
+                backdrop-filter: blur(20px);
+                display: flex; justify-content: center; align-items: center; 
+                border-top: 1px solid rgba(255,255,255,0.1);
+            }
+            .icone-barra { font-size: 24px; color: #fff; cursor: pointer; padding: 0 15px; transition: 0.2s; }
+            .icone-barra:hover { background: rgba(255,255,255,0.1); border-radius: 5px; }
+            #status { position: absolute; right: 20px; color: #aaa; font-size: 12px; }
+
+            #janela { 
+                display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                width: 500px; height: 400px; 
+                background: rgba(243, 243, 243, 0.95); 
+                backdrop-filter: blur(30px);
+                border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                z-index: 10; flex-direction: column; overflow: hidden; border: 1px solid rgba(255,255,255,0.2);
+                color: #000;
+            }
+            #barra-titulo { 
+                background: rgba(255,255,255,0.5); color: #000; padding: 10px 15px; font-weight: 600; 
+                display: flex; justify-content: space-between; align-items: center; 
+                border-bottom: 1px solid #ddd;
+            }
+            #fechar { cursor: pointer; padding: 0 10px; color: #000; font-weight: bold; }
+            #fechar:hover { background: red; color: white; border-radius: 3px; }
+            #textarea { 
+                flex: 1; margin: 0; border: none; resize: none; outline: none; 
+                padding: 15px; font-family: 'Segoe UI', sans-serif; font-size: 15px; background: transparent;
+            }
+            .btn-salvar { 
+                background: #0067c0; color: white; border: none; padding: 12px; 
+                font-weight: bold; cursor: pointer; margin: 15px; border-radius: 6px;
+            }
         </style>
     </head>
     <body>
         <div id="desktop">
-            <!-- Ícone -->
             <div class="icone" onclick="abrirBloco()">
                 <div>📄</div>
                 <span>MeuHD.txt</span>
             </div>
             
-            <!-- Janela -->
             <div id="janela">
                 <div id="barra-titulo">
+                    <span>📄 MeuHD.txt - Bloco de Notas</span>
                     <span id="fechar" onclick="fecharBloco()">X</span>
-                    📄 Bloco de Notas
                 </div>
                 <textarea id="textarea" placeholder="Digite aqui. Salva direto no Google Drive..."></textarea>
                 <button class="btn-salvar" onclick="salvarNoDrive()">Salvar na Nuvem</button>
             </div>
         </div>
 
-        <!-- Barra de tarefas -->
         <div id="barra-tarefas">
-            <table cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                    <td align="center">
-                        <span class="icone-barra">⊞</span>
-                        <span class="icone-barra">🔍</span>
-                        <span class="icone-barra">📁</span>
-                    </td>
-                </tr>
-            </table>
+            <div class="icone-barra">⊞</div>
+            <div class="icone-barra">🔍</div>
+            <div class="icone-barra">📁</div>
             <div id="status">Conectado ao Drive</div>
         </div>
 
         <script>
-            // Código ES5 (À prova de TVs)
-            function abrirBloco() { document.getElementById('janela').style.display = 'block'; }
+            function abrirBloco() { document.getElementById('janela').style.display = 'flex'; }
             function fecharBloco() { document.getElementById('janela').style.display = 'none'; }
             
             function salvarNoDrive() {
                 var texto = document.getElementById('textarea').value;
-                if(texto === "") { alert("Digite algo primeiro!"); return; }
+                if(texto === "") return alert("Digite algo primeiro!");
                 
                 document.getElementById('status').innerText = "Enviando...";
                 
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "/api/salvar-no-drive", true);
-                xhr.setRequestHeader("Content-Type", "application/json");
-                
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState == 4) {
-                        if(xhr.status == 200) {
-                            document.getElementById('status').innerText = "Salvo no Drive!";
-                            alert("Arquivo enviado pro Google Drive!");
-                        } else {
-                            document.getElementById('status').innerText = "Erro ao salvar";
-                            alert("Erro. Verifique o token no Google.");
-                        }
+                fetch('/api/salvar-no-drive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nomeArquivo: "arquivo_salvo.txt",
+                        conteudoBase64: btoa(texto)
+                    })
+                })
+                .then(function(res) {
+                    return res.text().then(function(text) {
+                        try { return JSON.parse(text); } 
+                        catch (e) { return { erro: "Erro na Vercel: " + text }; }
+                    });
+                })
+                .then(function(data) {
+                    if(data.status === 'sucesso') {
+                        document.getElementById('status').innerText = "Salvo no Drive!";
+                        alert("Arquivo enviado pro Google Drive!");
+                    } else {
+                        document.getElementById('status').innerText = "Erro";
+                        alert(data.erro || "Erro desconhecido");
                     }
-                };
-                
-                xhr.send(JSON.stringify({ 
-                    nomeArquivo: "arquivo_salvo.txt", 
-                    conteudoBase64: btoa(texto) 
-                }));
+                })
+                .catch(function(err) {
+                    document.getElementById('status').innerText = "Erro de Rede";
+                    alert("Falha na conexão: " + err.message);
+                });
             }
         </script>
     </body>
