@@ -4,7 +4,11 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 
-// Puxa as chaves do cofre da Vercel
+// CHECAGEM DE SEGURANÇA: Vai aparecer no Log da Vercel se as chaves estão lá
+console.log("Client ID:", CLIENT_ID ? "OK" : "FALTANDO");
+console.log("Client Secret:", CLIENT_SECRET ? "OK" : "FALTANDO");
+console.log("Refresh Token:", REFRESH_TOKEN ? "OK" : "FALTANDO");
+
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
