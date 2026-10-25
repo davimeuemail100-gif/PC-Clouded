@@ -9,11 +9,6 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 
-// 2. DEPOIS: Mostra no log se elas chegaram
-console.log("Client ID:", CLIENT_ID ? "OK" : "FALTANDO");
-console.log("Client Secret:", CLIENT_SECRET ? "OK" : "FALTANDO");
-console.log("Refresh Token:", REFRESH_TOKEN ? "OK" : "FALTANDO");
-
 // Função que renova o token do Google
 function renovarToken() {
     return new Promise((resolve, reject) => {
